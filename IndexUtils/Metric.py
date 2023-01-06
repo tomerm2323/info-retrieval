@@ -71,7 +71,23 @@ class Metric:
       except:
           pass 
     matrix = matrix.tocsr()
-    return matrix
+    indices = matrix.nonzero()
+
+    # Get the values of the non-zero elements
+    values = matrix.data
+
+    # Zip the indices and values into a list of tuples
+    non_zero_elements = list(zip(indices[0], indices[1], values))
+    docs = set([non_zero_elements[i][0] for i in range(len(non_zero_elements))])
+    docs_tfidf = dict.fromkeys(docs,None)
+    for doc,term_index, tfidf in non_zero_elements:
+      if docs_tfidf[doc] is None: 
+        docs_tfidf[doc] = [(term_index,tfidf)]
+      else:
+        docs_tfidf[doc].append((term_index,tfidf))
+
+    return docs_tfidf
+
   def get_top_n(self, score_dict,N=3):
     """ 
     Sort and return the highest N documents according to the cosine similarity score.
@@ -90,4 +106,4 @@ class Metric:
     a ranked list of pairs (doc_id, score) in the length of N.
     """
     
-    return sorted([(doc_id,round(score,5)) for doc_id, score in score_dict.items()], key = lambda x: x[1],reverse=True)[:N]
+    return sorted([(doc_id,np.round(score,5)) for doc_id, score in score_dict.items()], key = lambda x: x[1],reverse=True)[:N]
