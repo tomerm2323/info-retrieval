@@ -1,3 +1,6 @@
+from IndexUtils.CosineSim import CosineSim
+from IndexUtils.IndexReader import IndexReader
+from IndexUtils.QueryProcessor import QueryProcessor
 from flask import Flask, request, jsonify
 
 class MyFlaskApp(Flask):
@@ -56,18 +59,34 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
     res = []
-    query = request.args.get('query', '')
-    if len(query) == 0:
-      return jsonify(res)
-    # inv_index = IndexReader().read(base_dir='inv_index_text',name='inv_index_text')
-    # query_processor = QueryProcessor()
-    # query_as_tokens = query_processor.tokenize(query)
-    # tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
-    # cosine = CosineSim(inverted_index=inv_index)
-    # doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
+
+    inv_index = IndexReader().read_index(base_dir='inv_index_text',name='inv_index_text')
+    query_processor = QueryProcessor()
+    query_as_tokens = query_processor.tokenize(query)
+    print(f"query_as_tokens = {query_as_tokens}")
+    tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
+    cosine = CosineSim(inverted_index=inv_index)
+    print(f"cosine.get_tfidf_matrix started")
+    doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
+    print(f"cosine.get_tfidf_matrix ended")
+    print(f"cosine.cosine_similarity started, D = {doc_term_tfidf_matrics},   Q = {tfidf_qurery_vec}")
+    print()
+    print(f"D.keys = {doc_term_tfidf_matrics.keys()}, D.values {doc_term_tfidf_matrics.values()}")
+    print()
     # cosine_sim_dict = cosine.cosine_similarity(D=doc_term_tfidf_matrics, Q=tfidf_qurery_vec)
-    # top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
-    # res = ##### need you advice how to get the wiki id to connected to title
+    # cosine_sim_dict = cosine.cosine_sim_using_sklearn(queries=tfidf_qurery_vec,tfidf=doc_term_tfidf_matrics).to_dict()
+    cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
+    print(f"cosine.cosine_similarity ended")
+    print()
+    print(f"cosine_sim_dict = {cosine_sim_dict}")
+    print()
+    print(f"cosine.get_top_n started")
+    top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
+    print(f"cosine.get_top_n ended")
+    # # res =  ##### need you advice how to get the wiki id to connected
+
+    # # return jsonify(res)
+    return top100
     return jsonify(res)
 
 @app.route("/search_title")
