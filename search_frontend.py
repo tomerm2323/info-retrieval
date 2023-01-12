@@ -58,9 +58,9 @@ def search_body():
     query = request.args.get('query', '')
     if len(query) == 0:
       return jsonify(res)
-    res = []
 
     inv_index = IndexReader().read_index(base_dir='inv_index_text',name='inv_index_text')
+    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     print(f"query_as_tokens = {query_as_tokens}")
@@ -83,11 +83,9 @@ def search_body():
     print(f"cosine.get_top_n started")
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
     print(f"cosine.get_top_n ended")
-    # # res =  ##### need you advice how to get the wiki id to connected
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, top100)[:100]
+    return jsonify(docs_title_pair)
 
-    # # return jsonify(res)
-    return top100
-    return jsonify(res)
 
 @app.route("/search_title")
 def search_title():
@@ -110,14 +108,23 @@ def search_title():
         list of ALL (not just top 100) search results, ordered from best to 
         worst where each element is a tuple (wiki_id, title).
     '''
-    res = []
     query = request.args.get('query', '')
+    res = {}
     if len(query) == 0:
-      return jsonify(res)
-    # BEGIN SOLUTION
-
-    # END SOLUTION
-    return jsonify(res)
+        return jsonify(res)
+    inv_index = IndexReader().read_index(base_dir='inv_index_title', name='inv_index_title')
+    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
+    query_processor = QueryProcessor()
+    query_as_tokens = query_processor.tokenize(query)
+    for token in query_as_tokens:
+        byte_pl = inv_index.get_byte_pl(token)
+        pl = inv_index.byte_pl_to_list(byte_pl)
+        for doc_id, tf in pl:
+            instances_in_doc_title = res.setdefault(doc_id, 0) + tf
+            res[doc_id] = instances_in_doc_title
+    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))[:100]
+    return jsonify(docs_title_pair)
 
 @app.route("/search_anchor")
 def search_anchor():
@@ -140,14 +147,24 @@ def search_anchor():
         list of ALL (not just top 100) search results, ordered from best to 
         worst where each element is a tuple (wiki_id, title).
     '''
-    res = []
     query = request.args.get('query', '')
+    res = {}
     if len(query) == 0:
-      return jsonify(res)
-    # BEGIN SOLUTION
-    
-    # END SOLUTION
-    return jsonify(res)
+        return jsonify(res)
+    rdd_anchor_stats = IndexReader().read_index(base_dir='inv_index_anchor', name='inv_index_anchor')
+    ids_and_titles = IndexReader().read_index(base_dir='anchors', name='ids_anchors')
+    query_processor = QueryProcessor()
+    query_as_tokens = query_processor.tokenize(query)
+    for token in query_as_tokens:
+        token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == tolekn).collect()
+        stats = token_stats_dict[token]
+        for src_id, src_stats in stats.itmes():
+            count_tok_in_src = src_stats['count']
+            dest_set = src_stats['dest']
+            res[src_id] = count_tok_in_src
+    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
+    return jsonify(docs_title_pair)
 
 @app.route("/get_pagerank", methods=['POST'])
 def get_pagerank():
@@ -169,7 +186,7 @@ def get_pagerank():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    # BEGIN SOLUTION
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
 
     # END SOLUTION
     return jsonify(res)
@@ -196,10 +213,20 @@ def get_pageview():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    # BEGIN SOLUTION
-
-    # END SOLUTION
-    return jsonify(res)
+    ids_and_titles = IndexReader().read_index(base_dir='anchors', name='ids_anchors')
+    query_processor = QueryProcessor()
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(wiki_ids))
+    titles = [title for doc_id, title in docs_title_pair]
+    contatct_info = "tomerm3399@gmail.com.com"
+    p = PageviewsClient(user_agent="Python query script by " + contatct_info)
+    start_date = datetime.date(2021, 8, 1)
+    end_date = datetime.date(2021, 8, 31)
+    senate_views = p.article_views(project='en.wikipedia',
+                                   articles=titles,
+                                   granularity='monthly',
+                                   start=start_date,
+                                   end=end_date)
+    return jsonify(senate_views)
 
 
 if __name__ == '__main__':
