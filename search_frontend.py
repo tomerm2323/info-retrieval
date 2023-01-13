@@ -151,20 +151,20 @@ def search_anchor():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    rdd_anchor_stats = IndexReader().read_index(base_dir='inv_index_anchor', name='inv_index_anchor')
-    ids_and_titles = IndexReader().read_index(base_dir='anchors', name='ids_anchors')
+    rdd_anchor_stats = self.anchor_index
+    ids_and_titles = self.ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
-        token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == tolekn).collect()
-        stats = token_stats_dict[token]
-        for src_id, src_stats in stats.itmes():
-            count_tok_in_src = src_stats['count']
-            dest_set = src_stats['dest']
-            res[src_id] = count_tok_in_src
+        token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == token).first()
+        doc_tf_stats = token_stats_dict[token]
+        for src_id, src_tf in doc_tf_stats.itmes():
+            res.setdefault(src_id, 0)
+            res[src_id] += src_tf
     sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
-    return jsonify(docs_title_pair)
+    docs_anchor_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
+    return jsonify(docs_anchor_pair)
+
 
 @app.route("/get_pagerank", methods=['POST'])
 def get_pagerank():
@@ -212,20 +212,8 @@ def get_pageview():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    ids_and_titles = IndexReader().read_index(base_dir='anchors', name='ids_anchors')
-    query_processor = QueryProcessor()
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(wiki_ids))
-    titles = [title for doc_id, title in docs_title_pair]
-    contatct_info = "tomerm3399@gmail.com.com"
-    p = PageviewsClient(user_agent="Python query script by " + contatct_info)
-    start_date = datetime.date(2021, 8, 1)
-    end_date = datetime.date(2021, 8, 31)
-    senate_views = p.article_views(project='en.wikipedia',
-                                   articles=titles,
-                                   granularity='monthly',
-                                   start=start_date,
-                                   end=end_date)
-    return jsonify(senate_views)
+    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids ]
+    return jsonify(res)
 
 
 if __name__ == '__main__':
