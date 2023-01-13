@@ -186,10 +186,9 @@ def get_pagerank():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
-
-    # END SOLUTION
-    return jsonify(res)
+    pr_filtered = pr.filter(pr["id"].isin(wiki_ids))
+    pagerank_list = list(pr_filtered.select("pagerank").toPandas()['pagerank'])
+    return jsonify(pagerank_list)
 
 @app.route("/get_pageview", methods=['POST'])
 def get_pageview():
