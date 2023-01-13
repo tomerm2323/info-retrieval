@@ -9,8 +9,8 @@ class IndexReader:
     
   
   @staticmethod
-  def read_rdd_from_binary_files(path):
-      return spark.sparkContext.pickleFile(f"file:///{path}")
+  def read_rdd_from_binary_files(path, sc):
+      return sc.pickleFile(f"file:///{path}")
 
   @staticmethod
   def delete_index(base_dir, name):
