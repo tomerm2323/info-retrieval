@@ -1,8 +1,4 @@
 import re
-import nltk
-nltk.download('punkt')
-nltk.download("stopwords")
-nltk.download('stopwords')
 
 class Processor:
   def __init__(self):
@@ -62,7 +58,6 @@ class Processor:
 
   def tokenize(self, text):
     print("Proccessor -> tokenize : Started")
-    # return [(v, k) for match in self.patterns().finditer(text)
-    #               for k, v in match.groupdict().items() 
-    #               if v is not None and k != 'SPACE']
-    return nltk.word_tokenize(text)
+    return [(v, k) for match in self.patterns().finditer(text)
+                  for k, v in match.groupdict().items() 
+                  if v is not None and k != 'SPACE']
