@@ -74,17 +74,17 @@ class CosineSim(Metric):
     doc_score_dict = {}
     query_tfidf_to_square = list(map(lambda x: x[1]**2 , query))
     query_vec_size = np.sqrt(np.sum(query_tfidf_to_square))
+    query_term_index_list = [x[0] for x in query]
     for doc, term_score in docs.items():
-      vec_size = 0  
-      doc_tfidf_to_square = list(map(lambda x: x[1]**2 ,term_score))
-      doc_vec_size = np.sqrt(np.sum(doc_tfidf_to_square))
+      # doc_vec_size = self.tfidf_vec_size(doc_id=doc)
       dot_prod = 0
-      query_term_index_list = [x[0] for x in query]
       for term_index, tfidf_scroe in term_score:
-        if term_index in query_term_index_list:
-          index_in_query =  query_term_index_list.index(term_index)
-          dot_prod += tfidf_scroe * query[index_in_query][1]
-      cosine_score = dot_prod / (query_vec_size + doc_vec_size )
+        # if term_index in query_term_index_list:
+        index_in_query =  query_term_index_list.index(term_index)
+        query_term_tifidf = query[index_in_query][1]
+        dot_prod += tfidf_scroe * query_term_tifidf
+      doc_vec_size = doc2stats.lookup(doc)[0][0]
+      cosine_score = dot_prod / (query_vec_size + doc_vec_size)
       doc_score_dict[doc] = cosine_score 
       
     return doc_score_dict
