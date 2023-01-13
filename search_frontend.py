@@ -10,6 +10,11 @@ class MyFlaskApp(Flask):
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
+global inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
+global inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
+global inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
+global id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
+global tf_idf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
 
 @app.route("/search")
 def search():
@@ -59,31 +64,18 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
 
-    inv_index = IndexReader().read_index(base_dir='inv_index_text',name='inv_index_text')
-    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
+    inv_index = inv_index_text
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    print(f"query_as_tokens = {query_as_tokens}")
     tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
     cosine = CosineSim(inverted_index=inv_index)
-    print(f"cosine.get_tfidf_matrix started")
     doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
-    print(f"cosine.get_tfidf_matrix ended")
-    print(f"cosine.cosine_similarity started, D = {doc_term_tfidf_matrics},   Q = {tfidf_qurery_vec}")
-    print()
-    print(f"D.keys = {doc_term_tfidf_matrics.keys()}, D.values {doc_term_tfidf_matrics.values()}")
-    print()
-    # cosine_sim_dict = cosine.cosine_similarity(D=doc_term_tfidf_matrics, Q=tfidf_qurery_vec)
-    # cosine_sim_dict = cosine.cosine_sim_using_sklearn(queries=tfidf_qurery_vec,tfidf=doc_term_tfidf_matrics).to_dict()
     cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
-    print(f"cosine.cosine_similarity ended")
-    print()
-    print(f"cosine_sim_dict = {cosine_sim_dict}")
-    print()
-    print(f"cosine.get_top_n started")
+
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
-    print(f"cosine.get_top_n ended")
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, top100)[:100]
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
+    
     return jsonify(docs_title_pair)
 
 
