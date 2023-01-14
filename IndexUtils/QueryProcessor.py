@@ -8,6 +8,7 @@ import scipy
 
 class QueryProcessor(Processor):
   def __init__(self):
+    pass
     # self.panc = set(string.punctuation)
     # self.stopwords = set(stopwords.words('english'))
 
