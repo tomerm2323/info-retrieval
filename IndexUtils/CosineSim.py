@@ -33,9 +33,9 @@ class CosineSim(Metric):
               # index_in_query = query_term_index_list.index(term_index)
               query_term_tifidf = query[token]
               dot_prod += tfidf_scroe * query_term_tifidf
-          doc_vec_size = doc2tfidf_size.lookup(doc)[0][0]
-          cosine_score = dot_prod / (query_vec_size + doc_vec_size)
-          doc_score_dict[doc] = cosine_score
+          # doc_vec_size = doc2tfidf_size.lookup(doc)[0][0]
+          # cosine_score = dot_prod / (query_vec_size + doc_vec_size)
+          doc_score_dict[doc] = dot_prod
 
       return doc_score_dict
 
