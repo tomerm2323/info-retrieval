@@ -35,9 +35,10 @@ class QueryProcessor(Processor):
       np.array, size of 1 X  (voabulary size)
     """
     eps = 10 ** -9
-    total_vocab_size = len(inverted_index.df)
-    Q = scipy.sparse.csr_matrix((1, total_vocab_size))
-    term_vector = list(inverted_index.df.keys())
+    # total_vocab_size = len(inverted_index.df)
+    # Q = scipy.sparse.csr_matrix((1, total_vocab_size))
+    Q = {}
+    # term_vector = list(inverted_index.df.keys())
     term_stats_dict = Counter(query)
     N = inverted_index.N
     qeury_len = len(query)
@@ -48,13 +49,13 @@ class QueryProcessor(Processor):
         idf = np.log(N / term_df + eps)
         tfidf = norm_tf * idf
         try:
-          ind = term_vector.index(term)
-          Q[0, ind] = tfidf
+          # ind = term_vector.index(term)
+          Q[term] = tfidf
         except:
           pass
-    non_zero_elements = self.spars_matrix_to_list(matrix=Q)
-    return non_zero_elements
-
+    # non_zero_elements = self.spars_matrix_to_list(matrix=Q)
+    # return non_zero_elements
+    return Q
   def id_to_title(self, id_title_dict, ids_to_titles):
     """
       Returns the titles of all ids_to_titles doc ids

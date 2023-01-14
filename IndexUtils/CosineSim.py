@@ -14,23 +14,24 @@ class CosineSim(Metric):
       parameters
       ----------
 
-      query: list,
-            each element represent (index, tfidf score)
+      query: dict,
+            key --> token
+            value --> tfidf
       docs: dict,
             key: doc_id
-            value, (term_index, tfidf score)
+            value, (token, tfidf score)
       """
       doc_score_dict = {}
-      query_tfidf_to_square = list(map(lambda x: x[1] ** 2, query))
+      query_tfidf_to_square = list(map(lambda x: x ** 2, query.values()))
       query_vec_size = np.sqrt(np.sum(query_tfidf_to_square))
-      query_term_index_list = [x[0] for x in query]
-      for doc, term_score in docs.items():
+      # query_term_index_list = [x[0] for x in query]
+      for doc, token2score in docs.items():
           # doc_vec_size = self.tfidf_vec_size(doc_id=doc)
           dot_prod = 0
-          for term_index, tfidf_scroe in term_score:
+          for token, tfidf_scroe in token2score:
               # if term_index in query_term_index_list:
-              index_in_query = query_term_index_list.index(term_index)
-              query_term_tifidf = query[index_in_query][1]
+              # index_in_query = query_term_index_list.index(term_index)
+              query_term_tifidf = query[token]
               dot_prod += tfidf_scroe * query_term_tifidf
           doc_vec_size = doc2tfidf_size.lookup(doc)[0][0]
           cosine_score = dot_prod / (query_vec_size + doc_vec_size)
