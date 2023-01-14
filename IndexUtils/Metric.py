@@ -19,19 +19,21 @@ class Metric:
     -------
     dict, key --> (doc_id, term), value --> tfidf
     """
-    term_vector = list(self.inverted_index.term_total.keys())  
+    term_vector = list(self.inverted_index.df.keys())
+
     eps = 10 ** -9
     docs = {}
     tokens = list(set(query))
     for token in tokens:
       byte_pl = self.inverted_index.get_byte_pl(word=token)
-      
       pl = self.inverted_index.byte_pl_to_list(byte_pl)
       for doc_id, tf in pl:
         # key = (doc_id,token)
-        norm_tf = tf / self.inverted_index.doc2len_and_tfidf_size[doc_id][1]
+
+        norm_tf = tf / doc2len[doc_id]
         idf = np.log(self.inverted_index.N / self.inverted_index.df[token] + eps)
-        tfidf = norm_tf * idf 
+        tfidf = norm_tf * idf
+
         # docs[key] = tfidf
         token_index = term_vector.index(token)
         docs.setdefault(doc_id, [])
@@ -65,41 +67,7 @@ class Metric:
     vec_size = np.sqrt(vec_size)
     return vec_size
 
-
-  def get_tfidf_matrix(self,query):
-    """
-    returns a matrix for a docs X terms where each entry is the tfidf scroe of the term in the doc.
-
-    parameters
-    ----------
-      query: list, tokens in the query
-    
-    returns
-    -------
-      pd.DataFrame, size of (canidate docs) X  (voabulary size)
-    
-
-
-    """
-    # total_vocab_size = len(self.inverted_index.term_total)
-    candidates_scores = self.get_candidate_docs(query)
-    # print(f"candidates_scores = {candidates_scores}")
-    # unique_candidates = np.unique([doc_id for doc_id, term in candidates_scores.keys()])
-    # print(f"unique_candidates = {unique_candidates}")
-    # total_candidates = len(unique_candidates)
-    # matrix = scipy.sparse.lil_matrix((total_candidates, total_vocab_size))
-    # for key, tfidf in candidates_scores.items():
-    #   doc_id, term = key 
-    #   try:
-    #     term_index = term_vector.index(term) 
-    #     matrix[doc_id, term_index] = tfidf                    
-    #   except:
-    #       pass 
-    # matrix = matrix.tocsr()
-    # doc_tfidf = self.spars_matrix_to_dict(matrix)
-    return candidates_scores
-
-  def get_top_n(self, score_dict,N=3):
+  def get_top_n(self, score_dict, N=3):
     """ 
     Sort and return the highest N documents according to the cosine similarity score.
     Generate a dictionary of cosine similarity scores 

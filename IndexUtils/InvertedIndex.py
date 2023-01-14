@@ -96,20 +96,6 @@ class InvertedIndex:
 
         return pl
 
-    def calc_tfidf(self,word,doc_id):
-        """
-        This method was built for if we want to go over the inverted index after and calca tfidf
-        """
-        idf = np.log(self.N / self.df[word])
-        tfidf = 0
-        pl_as_byte = self.get_byte_pl(word)
-        for i in range(4,len(pl_as_byte), 6):
-            temp_doc_id = int.from_bytes(pl_as_byte[i-4:i],'big')
-            if temp_doc_id == doc_id:
-                tf = int.from_bytes(pl_as_byte[i:i + 2],'big')
-                tfidf = tf * idf
-                break
-        return tfidf
 
 
 

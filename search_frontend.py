@@ -68,6 +68,7 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
 
+
     inv_index = inv_index_text
     ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
@@ -108,8 +109,8 @@ def search_title():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    inv_index = IndexReader().read_index(base_dir='inv_index_title', name='inv_index_title')
-    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
+    inv_index = inv_index_title
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
@@ -147,8 +148,8 @@ def search_anchor():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    rdd_anchor_stats = self.anchor_index
-    ids_and_titles = self.ids_to_titles
+    rdd_anchor_stats = anchor_index
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
@@ -208,7 +209,7 @@ def get_pageview():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids ]
+    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids]
     return jsonify(res)
 
 
