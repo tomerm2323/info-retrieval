@@ -1,6 +1,7 @@
 from IndexUtils.CosineSim import CosineSim
 from IndexUtils.IndexReader import IndexReader
 from IndexUtils.QueryProcessor import QueryProcessor
+from pyspark import SparkContext
 from flask import Flask, request, jsonify
 
 class MyFlaskApp(Flask):
@@ -10,11 +11,14 @@ class MyFlaskApp(Flask):
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
+sc = SparkContext("local", "Simple App")
+    
 global inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
 global inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
 global inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
 global id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
 global tf_idf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
+global doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
 
 @app.route("/search")
 def search():
