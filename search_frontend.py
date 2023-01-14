@@ -52,7 +52,7 @@ def search():
     query = request.args.get('query', '')
     if len(query) == 0:
       return jsonify(res)
-    score =  + 1000
+    score = + 1000
     return jsonify(res)
 
 @app.route("/search_body")
