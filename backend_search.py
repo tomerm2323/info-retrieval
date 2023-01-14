@@ -66,7 +66,7 @@ class BM25_from_index(Metric.Metric):
         self.idf = self.calc_idf(query)
         for term in query:
             if term in self.index.term_total.keys():
-                term_frequencies = dict(self.pls[self.words.index(term)])
+                term_frequencies = dict(IndexReader.read_pl(term))
                 if doc_id in term_frequencies.keys():
                     freq = term_frequencies[doc_id]
                     numerator = self.idf[term] * freq * (self.k1 + 1)
