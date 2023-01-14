@@ -2,6 +2,10 @@ from IndexUtils.CosineSim import CosineSim
 from IndexUtils.IndexReader import IndexReader
 from IndexUtils.QueryProcessor import QueryProcessor
 from pyspark import SparkContext
+from pyspark.conf import SparkConf
+conf = SparkConf()
+conf.setMaster('local').setAppName('myapp')
+sc = SparkContext(conf=conf)
 from flask import Flask, request, jsonify
 
 class MyFlaskApp(Flask):
@@ -11,14 +15,20 @@ class MyFlaskApp(Flask):
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
-sc = SparkContext("local", "Simple App")
+# sc = SparkContext("local", "Simple App")
     
-global inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
-global inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
-global inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
-global id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
-global doc2tfidf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
-global doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
+global inv_index_text
+inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
+global inv_index_title
+inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
+global inv_index_anchor
+inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
+global id_to_title
+id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
+global doc2tfidf_size
+doc2tfidf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
+global doc_to_len
+doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
 
 @app.route("/search")
 def search():
@@ -42,9 +52,7 @@ def search():
     query = request.args.get('query', '')
     if len(query) == 0:
       return jsonify(res)
-    # BEGIN SOLUTION
-
-    # END SOLUTION
+    score =  + 1000
     return jsonify(res)
 
 @app.route("/search_body")
@@ -80,7 +88,7 @@ def search_body():
 
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
     docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
-    
+
     return jsonify(docs_title_pair)
 
 
@@ -110,7 +118,7 @@ def search_title():
     if len(query) == 0:
         return jsonify(res)
     inv_index = inv_index_title
-    ids_and_titles = ids_to_titles
+    # ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
@@ -120,8 +128,8 @@ def search_title():
             instances_in_doc_title = res.setdefault(doc_id, 0) + tf
             res[doc_id] = instances_in_doc_title
     sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))[:100]
-    return jsonify(docs_title_pair)
+    # docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))[:100]
+    return jsonify(sorted_res)
 
 @app.route("/search_anchor")
 def search_anchor():
@@ -179,13 +187,13 @@ def get_pagerank():
         list of floats:
           list of PageRank scores that correrspond to the provided article IDs.
     '''
-    res = []
-    wiki_ids = request.get_json()
-    if len(wiki_ids) == 0:
-      return jsonify(res)
-    pr_filtered = pr.filter(pr["id"].isin(wiki_ids))
-    pagerank_list = list(pr_filtered.select("pagerank").toPandas()['pagerank'])
-    return jsonify(pagerank_list)
+    # res = []
+    # wiki_ids = request.get_json()
+    # if len(wiki_ids) == 0:
+    #   return jsonify(res)
+    # pr_filtered = pr.filter(pr["id"].isin(wiki_ids))
+    # pagerank_list = list(pr_filtered.select("pagerank").toPandas()['pagerank'])
+    # return jsonify(pagerank_list)
 
 @app.route("/get_pageview", methods=['POST'])
 def get_pageview():
@@ -216,3 +224,4 @@ def get_pageview():
 if __name__ == '__main__':
     # run the Flask RESTful API, make the server publicly available (host='0.0.0.0') on port 8080
     app.run(host='0.0.0.0', port=8080, debug=True)
+

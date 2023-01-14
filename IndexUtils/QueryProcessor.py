@@ -1,7 +1,7 @@
 from collections import Counter
 import numpy as np
 import scipy
-from Processor import Processor
+from .Processor import Processor
 
 import scipy
 

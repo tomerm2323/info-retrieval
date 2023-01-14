@@ -1,5 +1,5 @@
 import scipy
-import numpu as np
+import numpy as np
 
 class Metric:
   def __init__(self, inverted_index):

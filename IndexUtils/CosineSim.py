@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from Metric import Metric
+from .Metric import Metric
 from sklearn.metrics.pairwise import cosine_similarity
 
 class CosineSim(Metric):
