@@ -35,9 +35,10 @@ class Metric:
         tfidf = norm_tf * idf
 
         # docs[key] = tfidf
-        token_index = term_vector.index(token)
+        # token_index = term_vector.index(token)
         docs.setdefault(doc_id, [])
-        docs[doc_id].append((token_index, tfidf))
+        # docs[doc_id].append((token_index, tfidf))
+        docs[doc_id].append((token, tfidf))
     return docs
 
   def spars_matrix_to_dict(self, matrix):
