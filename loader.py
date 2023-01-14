@@ -4,9 +4,11 @@ import pickle
 
 import pandas as pd
 from google.cloud import storage
-from inverted_index_gcp import InvertedIndex, TUPLE_SIZE
-from multifilereader import MultiFileReader
+from InvertedIndex import InvertedIndex
+from MultiFileReader import MultiFileReader
 from contextlib import closing
+
+TUPLE_SIZE = 6
 
 def _hash(s):
     return hashlib.blake2b(bytes(s, encoding='utf8'), digest_size=5).hexdigest()
