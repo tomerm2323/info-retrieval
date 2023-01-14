@@ -3,9 +3,13 @@ import numpy as np
 import scipy
 from Processor import Processor
 
+import scipy
+
+
 class QueryProcessor(Processor):
   def __init__(self):
-    pass
+    # self.panc = set(string.punctuation)
+    # self.stopwords = set(stopwords.words('english'))
 
   def spars_matrix_to_list(self, matrix):
     indices = matrix.nonzero()
@@ -30,14 +34,14 @@ class QueryProcessor(Processor):
       np.array, size of 1 X  (voabulary size)
     """
     eps = 10 ** -9
-    total_vocab_size = len(inverted_index.term_total)
+    total_vocab_size = len(inverted_index.df)
     Q = scipy.sparse.csr_matrix((1, total_vocab_size))
-    term_vector = list(inverted_index.term_total.keys())
+    term_vector = list(inverted_index.df.keys())
     term_stats_dict = Counter(query)
     N = inverted_index.N
     qeury_len = len(query)
     for term, tf in term_stats_dict.items():
-      if term in inverted_index.term_total.keys():
+      if term in inverted_index.df.keys():
         norm_tf = tf / qeury_len
         term_df = inverted_index.df[term]
         idf = np.log(N / term_df + eps)

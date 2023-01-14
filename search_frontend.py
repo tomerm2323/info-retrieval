@@ -59,30 +59,15 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
 
-    inv_index = IndexReader().read_index(base_dir='inv_index_text',name='inv_index_text')
-    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
+    inv_index = inv_index_title
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    print(f"query_as_tokens = {query_as_tokens}")
     tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
     cosine = CosineSim(inverted_index=inv_index)
-    print(f"cosine.get_tfidf_matrix started")
     doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
-    print(f"cosine.get_tfidf_matrix ended")
-    print(f"cosine.cosine_similarity started, D = {doc_term_tfidf_matrics},   Q = {tfidf_qurery_vec}")
-    print()
-    print(f"D.keys = {doc_term_tfidf_matrics.keys()}, D.values {doc_term_tfidf_matrics.values()}")
-    print()
-    # cosine_sim_dict = cosine.cosine_similarity(D=doc_term_tfidf_matrics, Q=tfidf_qurery_vec)
-    # cosine_sim_dict = cosine.cosine_sim_using_sklearn(queries=tfidf_qurery_vec,tfidf=doc_term_tfidf_matrics).to_dict()
     cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
-    print(f"cosine.cosine_similarity ended")
-    print()
-    print(f"cosine_sim_dict = {cosine_sim_dict}")
-    print()
-    print(f"cosine.get_top_n started")
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
-    print(f"cosine.get_top_n ended")
     docs_title_pair = query_processor.id_to_title(ids_and_titles, top100)[:100]
     return jsonify(docs_title_pair)
 
@@ -112,8 +97,8 @@ def search_title():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    inv_index = IndexReader().read_index(base_dir='inv_index_title', name='inv_index_title')
-    ids_and_titles = IndexReader().read_index(base_dir='titles', name='ids_titles')
+    inv_index = inv_index_title
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
@@ -151,8 +136,8 @@ def search_anchor():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    rdd_anchor_stats = self.anchor_index
-    ids_and_titles = self.ids_to_titles
+    rdd_anchor_stats = anchor_index
+    ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
@@ -212,7 +197,7 @@ def get_pageview():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids ]
+    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids]
     return jsonify(res)
 
 
