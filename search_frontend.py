@@ -17,7 +17,7 @@ global inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pk
 global inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
 global inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
 global id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
-global tf_idf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
+global doc2tfidf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
 global doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
 
 @app.route("/search")
