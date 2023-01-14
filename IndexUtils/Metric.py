@@ -1,6 +1,5 @@
-import numpy as np
 import scipy
-
+import numpu as np
 
 class Metric:
   def __init__(self, inverted_index):
@@ -21,6 +20,7 @@ class Metric:
     dict, key --> (doc_id, term), value --> tfidf
     """
     term_vector = list(self.inverted_index.df.keys())
+
     eps = 10 ** -9
     docs = {}
     tokens = list(set(query))
@@ -29,17 +29,43 @@ class Metric:
       pl = self.inverted_index.byte_pl_to_list(byte_pl)
       for doc_id, tf in pl:
         # key = (doc_id,token)
+
         norm_tf = tf / doc2len[doc_id]
         idf = np.log(self.inverted_index.N / self.inverted_index.df[token] + eps)
         tfidf = norm_tf * idf
+
         # docs[key] = tfidf
         token_index = term_vector.index(token)
         docs.setdefault(doc_id, [])
         docs[doc_id].append((token_index, tfidf))
     return docs
 
+  def spars_matrix_to_dict(self, matrix):
+    
+    indices = matrix.nonzero() 
+    # Get the values of the non-zero elements
+    values = matrix.data
+    # Zip the indices and values into a list of tuples
+    non_zero_elements = list(zip(indices[0], indices[1], values))
+    docs = set([non_zero_elements[i][0] for i in range(len(non_zero_elements))])
+    docs_tfidf = dict.fromkeys(docs,None)
+    for doc,term_index, tfidf in non_zero_elements:
+      if docs_tfidf[doc] is None: 
+        docs_tfidf[doc] = [(term_index,tfidf)]
+      else:
+        docs_tfidf[doc].append((term_index,tfidf))
+    return docs_tfidf
 
-
+  def tfidf_vec_size(self,doc_id):
+    doc_stasts = self.inverted_index.doc_stats[doc_id]
+    vec_size = 0 
+    for term,tf in doc_stasts.items():
+      term_df = self.inverted_index.df[term]
+      idf = np.log(self.inverted_index.N / term_df)
+      tfidf = tf * idf
+      vec_size += tfidf ** 2
+    vec_size = np.sqrt(vec_size)
+    return vec_size
 
   def get_top_n(self, score_dict, N=3):
     """ 

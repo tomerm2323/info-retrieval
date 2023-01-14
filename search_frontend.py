@@ -1,6 +1,7 @@
 from IndexUtils.CosineSim import CosineSim
 from IndexUtils.IndexReader import IndexReader
 from IndexUtils.QueryProcessor import QueryProcessor
+from pyspark import SparkContext
 from flask import Flask, request, jsonify
 
 class MyFlaskApp(Flask):
@@ -10,6 +11,14 @@ class MyFlaskApp(Flask):
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
+sc = SparkContext("local", "Simple App")
+    
+global inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
+global inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
+global inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
+global id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
+global doc2tfidf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
+global doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
 
 @app.route("/search")
 def search():
@@ -59,7 +68,8 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
 
-    inv_index = inv_index_title
+
+    inv_index = inv_index_text
     ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
@@ -67,8 +77,10 @@ def search_body():
     cosine = CosineSim(inverted_index=inv_index)
     doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
     cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
+
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
-    docs_title_pair = query_processor.id_to_title(ids_and_titles, top100)[:100]
+    docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
+    
     return jsonify(docs_title_pair)
 
 
