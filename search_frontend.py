@@ -8,6 +8,9 @@ conf.setMaster('local').setAppName('myapp')
 sc = SparkContext(conf=conf)
 from flask import Flask, request, jsonify
 from InvertedIndex import InvertedIndex
+import requests
+import datetime
+from mwviews.api import PageviewsClient
 
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, **options):
@@ -32,6 +35,11 @@ global doc_to_len
 doc_to_len = reader.read_index('', 'doc_len')
 global tokens
 tokens = reader.read_index('', 'tokens')
+global page_view
+page_view = reader.read_index('', 'page_views')
+global page_rank
+page_rank = reader.read_pagerank('page_rank')
+
 
 @app.route("/check_globals")
 def check_globals():
@@ -95,17 +103,12 @@ def search_body():
     ids_and_titles = id_to_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    print(f"LOGGER: search_body() : tokens = {query_as_tokens}")
     tfidf_query_vec = query_processor.calc_tfidf_query(query=query_as_tokens, inverted_index=inv_index)
-    print(f"LOGGER: search_body() : tfidf_qurery_vec = {tfidf_query_vec}")
-    cosine = CosineSim(inverted_index=inv_index)
+    cosine = CosineSim(inverted_index=inv_index, doc_to_len=doc_to_len)
     doc_term_tfidf_matrics = cosine.get_candidate_docs(query=query_as_tokens)
     cosine_sim_dict = cosine.cos_sim(query=tfidf_query_vec,docs=doc_term_tfidf_matrics)
-    print(f"LOGGER: search_body() : cosine_sim_dict = {cosine_sim_dict}")
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100)  # return as doc_id, score
-    print(f"LOGGER: search_body() : top100 = {top100}")
     docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
-    print(f"LOGGER: search_body() : docs_title_pair = {docs_title_pair}")
     return jsonify(docs_title_pair)
 
 
@@ -135,18 +138,20 @@ def search_title():
     if len(query) == 0:
         return jsonify(res)
     inv_index = inv_index_title
-    # ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
+    # print(f"LOGGER: search_title() : tokens = {query_as_tokens}")
     for token in query_as_tokens:
-        byte_pl = inv_index.get_byte_pl(token)
-        pl = inv_index.byte_pl_to_list(byte_pl)
+        # byte_pl = inv_index.get_byte_pl(token)
+        # pl = inv_index.byte_pl_to_list(byte_pl)
+        pl = reader.load_posting_lists_for_token(token, inv_index, 'postings_gcp_title')
         for doc_id, tf in pl:
+            # print(f"LOGGER: search_title() : doc_id, title = {doc_id, id_to_title[doc_id]}")
             instances_in_doc_title = res.setdefault(doc_id, 0) + tf
             res[doc_id] = instances_in_doc_title
-    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
-    # docs_title_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))[:100]
-    return jsonify(sorted_res)
+    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1], reverse=True)}
+    docs_title_pair = query_processor.id_to_title(id_to_title, list(sorted_res.keys()))[:100]
+    return jsonify(docs_title_pair)
 
 @app.route("/search_anchor")
 def search_anchor():
@@ -173,17 +178,20 @@ def search_anchor():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    rdd_anchor_stats = anchor_index
-    ids_and_titles = ids_to_titles
+    rdd_anchor_stats = inv_index_anchor
+    ids_and_titles = id_to_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     for token in query_as_tokens:
-        token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == token).first()
+        try:
+            token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == token).first()
+        except:
+            return jsonify([])
         doc_tf_stats = token_stats_dict[token]
-        for src_id, src_tf in doc_tf_stats.itmes():
+        for src_id, src_tf in doc_tf_stats.items():
             res.setdefault(src_id, 0)
             res[src_id] += src_tf
-    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1])}
+    sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1], reverse=True)}
     docs_anchor_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
     return jsonify(docs_anchor_pair)
 
@@ -204,12 +212,15 @@ def get_pagerank():
         list of floats:
           list of PageRank scores that correrspond to the provided article IDs.
     '''
+
     res = []
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    pr_filtered = pr.filter(pr["id"].isin(wiki_ids))
-    pagerank_list = list(pr_filtered.select("pagerank").toPandas()['pagerank'])
+    pr = page_rank
+    print(page_rank.columns)
+    pr_filtered = pr[pr["id"].isin(wiki_ids)]
+    pagerank_list = pr_filtered['pr'].tolist()
     return jsonify(pagerank_list)
 
 @app.route("/get_pageview", methods=['POST'])
@@ -230,13 +241,36 @@ def get_pageview():
           list of page view numbers from August 2021 that correrspond to the 
           provided list article IDs.
     '''
+    print("LOGGER: get_pageview(): Started")
     res = []
     wiki_ids = request.get_json()
+    print(f"LOGGER: get_pageview(): wiki_ids = {wiki_ids}")
     if len(wiki_ids) == 0:
-      return jsonify(res)
-    res = [pageview[f'{wiki_id}'] for wiki_id in wiki_ids]
-    return jsonify(res)
+        return jsonify(res)
+    elif len(wiki_ids) < 30:
+        jsonRes = calc_page_view([id_to_title[wiki_id] for wiki_id in wiki_ids])
+        res = list(jsonRes.values())
+        if not res[0]:
+            res = [page_view[wiki_id] for wiki_id in wiki_ids]
+        return jsonify(res)
+    else:
+        res = [page_view[wiki_id] for wiki_id in wiki_ids]
+        return jsonify(res)
 
+
+def calc_page_view(titles: list):
+  contatct_info = "tomerm3399@gmail.com"
+  p = PageviewsClient(user_agent="Python query script by " + contatct_info)
+  start_date = datetime.date(2021, 8, 1)
+  end_date = datetime.date(2021, 9, 1)
+  senate_views = p.article_views(project='en.wikipedia', 
+                              articles=titles, 
+                              granularity='monthly', 
+                              start=start_date, 
+                              end=end_date)
+  page_view_dict = list(senate_views.values())[0]
+
+  return page_view_dict
 
 if __name__ == '__main__':
     # run the Flask RESTful API, make the server publicly available (host='0.0.0.0') on port 8080
