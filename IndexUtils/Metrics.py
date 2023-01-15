@@ -26,9 +26,7 @@ class Metric:
     docs = {}
     tokens = list(set(query))
     for token in tokens:
-      # byte_pl = self.inverted_index.get_byte_pl(word=token)
-      # pl = self.inverted_index.byte_pl_to_list(byte_pl)
-      pl = IndexReader.load_posting_lists_for_token(token, self.inverted_index)
+      pl = IndexReader.load_posting_lists_for_token(token, self.inverted_index, 'postings_gcp')
       for doc_id, tf in pl:
         # key = (doc_id,token)
 
