@@ -85,11 +85,10 @@ def search_body():
     ids_and_titles = ids_to_titles
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
+    tfidf_qurery_vec = query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
     cosine = CosineSim(inverted_index=inv_index)
-    doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
-    cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
-
+    candidates = cosine.get_candidate_docs(query=query_as_tokens)
+    cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=candidates)
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
     docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
 
