@@ -1,36 +1,49 @@
-import CosineSim
+from CosineSim import CosineSim
 from IndexReader import IndexReader
-import QueryProcessor
+from QueryProcessor import QueryProcessor
 from pyspark import SparkContext
 from pyspark.conf import SparkConf
 conf = SparkConf()
 conf.setMaster('local').setAppName('myapp')
 sc = SparkContext(conf=conf)
+sc.setLogLevel("TRACE")
 from flask import Flask, request, jsonify
+from InvertedIndex import InvertedIndex
 
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, **options):
         super(MyFlaskApp, self).run(host=host, port=port, debug=debug, **options)
-
+        
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 # sc = SparkContext("local", "Simple App")
-    
-global inv_index_text
-inv_index_text = IndexReader.read_index('home/shemi_p17', 'inv_index_text')
+invertedIndex = InvertedIndex()
+reader = IndexReader(invertedIndex)
+
+global inv_index_text   
+inv_index_text = reader.read_index('', 'inv_index_text')
 global inv_index_title
-inv_index_title = IndexReader.read_index('home/shemi_p17', 'inv_index_title')
+inv_index_title = reader.read_index('', 'inv_index_title')
 global inv_index_anchor
-inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
+inv_index_anchor = reader.read_rdd_from_binary_files('inv_index_anchors', sc)
 global id_to_title
-id_to_title = IndexReader.read_index('/home/shemi_p17', 'doc_titles')
-global doc2tfidf_size
-doc_norms = IndexReader.read_index('/home/shemi_p17', 'doc_norms')
-global doc_to_len
-doc_to_len = IndexReader.read_index('/home/shemi_p17', 'doc_len')
+id_to_title = reader.read_index('', 'doc_titles')
+# global doc_to_len
+# doc_to_len = reader.read_index('', 'doc_len')
 global tokens
-tokens = IndexReader.read_index('/home/shemi_p17', 'tokens')
+tokens = reader.read_index('', 'tokens')
+
+@app.route("/check_globals")
+def check_globals():
+    types = []
+    types.append(type(inv_index_text))
+    types.append(type(inv_index_title))
+    types.append(type(inv_index_anchor))
+    types.append(type(doc_to_len))
+    types.append(type(tokens))
+
+    print(types)
 
 
 @app.route("/search")
@@ -81,7 +94,7 @@ def search_body():
 
 
     inv_index = inv_index_text
-    ids_and_titles = ids_to_titles
+    ids_and_titles = id_to_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
     tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
