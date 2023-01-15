@@ -6,14 +6,13 @@ from pyspark.conf import SparkConf
 conf = SparkConf()
 conf.setMaster('local').setAppName('myapp')
 sc = SparkContext(conf=conf)
-# sc.setLogLevel("TRACE")
 from flask import Flask, request, jsonify
 from InvertedIndex import InvertedIndex
 
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, **options):
         super(MyFlaskApp, self).run(host=host, port=port, debug=debug, **options)
-        
+
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
@@ -21,7 +20,7 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 invertedIndex = InvertedIndex()
 reader = IndexReader(invertedIndex)
 
-global inv_index_text   
+global inv_index_text
 inv_index_text = reader.read_index('', 'inv_index_text')
 global inv_index_title
 inv_index_title = reader.read_index('', 'inv_index_title')
@@ -68,7 +67,7 @@ def search():
     query = request.args.get('query', '')
     if len(query) == 0:
       return jsonify(res)
-    score =  + 1000
+    score = + 1000
     return jsonify(res)
 
 @app.route("/search_body")

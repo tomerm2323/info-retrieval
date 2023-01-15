@@ -34,7 +34,7 @@ class IndexReader:
     for p in Path(base_dir).rglob(f'{name}_*.bin'):
       p.unlink()
 
-  
+
   def load_posting_lists_for_token(self, token, index: InvertedIndex, folder_name):
       locs = index.posting_locs[token]
       for f_name, pos in locs:
