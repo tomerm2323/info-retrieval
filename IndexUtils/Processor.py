@@ -58,6 +58,6 @@ class Processor:
 
   def tokenize(self, text):
     print("Proccessor -> tokenize : Started")
-    return [(v, k) for match in self.patterns().finditer(text)
+    return [v.lower() for match in self.patterns().finditer(text)
                   for k, v in match.groupdict().items() 
                   if v is not None and k != 'SPACE']

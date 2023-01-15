@@ -3,9 +3,10 @@ import numpy as np
 from IndexReader import IndexReader
 
 class Metric:
-  def __init__(self, inverted_index):
+  def __init__(self, inverted_index, doc_to_len):
     # self.index = index
     self.inverted_index = inverted_index
+    self.doc_to_len = doc_to_len
 
   def get_candidate_docs(self, query):
     """
@@ -26,12 +27,12 @@ class Metric:
     docs = {}
     tokens = list(set(query))
     for token in tokens:
-      reader = IndexReader() 
+      reader = IndexReader(self.inverted_index) 
       pl = reader.load_posting_lists_for_token(token, self.inverted_index, 'postings_gcp')
       for doc_id, tf in pl:
         # key = (doc_id,token)
 
-        norm_tf = tf / doc_to_len[doc_id]
+        norm_tf = tf / self.doc_to_len[doc_id]
         idf = np.log(self.inverted_index.N / self.inverted_index.df[token] + eps)
         tfidf = norm_tf * idf
 

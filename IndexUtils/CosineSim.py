@@ -4,8 +4,8 @@ from Metrics import Metric
 from sklearn.metrics.pairwise import cosine_similarity
 
 class CosineSim(Metric):
-  def __init__(self, inverted_index):
-    super().__init__(inverted_index)
+  def __init__(self, inverted_index, doc_to_len):
+    super().__init__(inverted_index, doc_to_len)
 
   def cos_sim(self, query, docs):
       """

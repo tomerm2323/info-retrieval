@@ -1,7 +1,7 @@
 from contextlib import closing
 import numpy as np
 
-BLOCK_SIZE = 30
+BLOCK_SIZE = 1999998
 TUPLE_SIZE = 6       
 TF_MASK = 2 ** 16 - 1 # Masking the 16 low bits of an integer
 
