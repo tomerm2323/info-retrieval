@@ -1,6 +1,6 @@
-from IndexUtils.CosineSim import CosineSim
-from IndexUtils.IndexReader import IndexReader
-from IndexUtils.QueryProcessor import QueryProcessor
+from CosineSim import CosineSim
+from IndexReader import IndexReader
+from QueryProcessor import QueryProcessor
 from pyspark import SparkContext
 from pyspark.conf import SparkConf
 conf = SparkConf()
@@ -16,13 +16,15 @@ app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 # sc = SparkContext("local", "Simple App")
-    
+invertedIndex = InvertedIndex()
+reader = IndexReader(invertedIndex)
+
 global inv_index_text
-inv_index_text = IndexReader.read_index('home/shemi_p17/inv_index_text.pkl')
+inv_index_text = reader.read_index('', 'inv_index_text')
 global inv_index_title
-inv_index_title = IndexReader.read_index('home/shemi_p17/inv_index_title.pkl')
+inv_index_title = reader.read_index('', 'inv_index_title')
 global inv_index_anchor
-inv_index_anchor = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/inv_index_anchors', sc)
+inv_index_anchor = reader.read_rdd_from_binary_files('inv_index_anchors', sc)
 global id_to_title
 id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
 global doc2tfidf_size

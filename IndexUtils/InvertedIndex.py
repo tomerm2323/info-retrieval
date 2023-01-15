@@ -4,8 +4,8 @@ from operator import itemgetter
 from pathlib import Path
 import pickle
 import numpy as np
-from MultiFileWriter import MultiFileWriter
-from MultiFileReader import MultiFileReader
+import MultiFileWriter
+import MultiFileReader
 
 class InvertedIndex:  
     def __init__(self, docs={}):

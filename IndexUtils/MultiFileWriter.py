@@ -1,6 +1,8 @@
-# Let's start with a small block size of 30 bytes just to test things out. 
-BLOCK_SIZE = 1999998
+import itertools
+from pathlib import Path
 
+
+BLOCK_SIZE = 30
 class MultiFileWriter:
     """ Sequential binary writer to multiple files of up to BLOCK_SIZE each. """
     def __init__(self, base_dir, name, bucket_name):
