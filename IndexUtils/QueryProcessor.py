@@ -1,12 +1,12 @@
 from collections import Counter
 import numpy as np
 import scipy
-from .Processor import Processor
+from Processor import Processor
 
 import scipy
 
 
-class QueryProcessor(Processor):
+class QueryProcessor(Processor.Processor):
   def __init__(self):
     pass
     # self.panc = set(string.punctuation)
