@@ -7,6 +7,7 @@ conf = SparkConf()
 conf.setMaster('local').setAppName('myapp')
 sc = SparkContext(conf=conf)
 from flask import Flask, request, jsonify
+from InvertedIndex import InvertedIndex
 
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, **options):
@@ -26,11 +27,23 @@ inv_index_title = reader.read_index('', 'inv_index_title')
 global inv_index_anchor
 inv_index_anchor = reader.read_rdd_from_binary_files('inv_index_anchors', sc)
 global id_to_title
-id_to_title = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/doc_id_to_titles', sc)
-global doc2tfidf_size
-doc2tfidf_size = IndexReader.read_rdd_from_binary_files('/home/shemi_p17/tfIdfSizes.pkl', sc)
+id_to_title = reader.read_index('', 'doc_titles')
 global doc_to_len
-doc_to_len = IndexReader.read_index('/home/shemi_p17/doc_len.pkl')
+doc_to_len = reader.read_index('', 'doc_len')
+global tokens
+tokens = reader.read_index('', 'tokens')
+
+@app.route("/check_globals")
+def check_globals():
+    types = []
+    types.append(type(inv_index_text))
+    types.append(type(inv_index_title))
+    types.append(type(inv_index_anchor))
+    # types.append(type(doc_to_len))
+    types.append(type(tokens))
+
+    print(types)
+
 
 @app.route("/search")
 def search():
@@ -78,19 +91,21 @@ def search_body():
     if len(query) == 0:
       return jsonify(res)
 
-
     inv_index = inv_index_text
-    ids_and_titles = ids_to_titles
+    ids_and_titles = id_to_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    tfidf_qurery_vec =  query_processor.calc_tfidf_query(query=query_as_tokens,inverted_index=inv_index)
+    print(f"LOGGER: search_body() : tokens = {query_as_tokens}")
+    tfidf_query_vec = query_processor.calc_tfidf_query(query=query_as_tokens, inverted_index=inv_index)
+    print(f"LOGGER: search_body() : tfidf_qurery_vec = {tfidf_query_vec}")
     cosine = CosineSim(inverted_index=inv_index)
-    doc_term_tfidf_matrics = cosine.get_tfidf_matrix(query=query_as_tokens)
-    cosine_sim_dict = cosine.cos_sim(query=tfidf_qurery_vec,docs=doc_term_tfidf_matrics)
-
-    top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100) # return as doc_id, score
+    doc_term_tfidf_matrics = cosine.get_candidate_docs(query=query_as_tokens)
+    cosine_sim_dict = cosine.cos_sim(query=tfidf_query_vec,docs=doc_term_tfidf_matrics)
+    print(f"LOGGER: search_body() : cosine_sim_dict = {cosine_sim_dict}")
+    top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100)  # return as doc_id, score
+    print(f"LOGGER: search_body() : top100 = {top100}")
     docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
-
+    print(f"LOGGER: search_body() : docs_title_pair = {docs_title_pair}")
     return jsonify(docs_title_pair)
 
 
