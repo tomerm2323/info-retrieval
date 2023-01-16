@@ -1,12 +1,7 @@
 # info-retrieval
 This project is an information retrival system for english wikipedia documents which returns to the user titles and wiki id for a given query.  
-# Table of Contents
 
-1. [backend search](#Called by the fortned_search.py to compute the search over the index)
-2. [frontend search](#An endpoint for the user that passes his requests to backend and retrive results for user)
-## My first title
-Some text.
-## My second title
+##Table of Contents
 
 1. [ backend search. ](#desc)
 2. [ frontend search ](#usage)
