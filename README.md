@@ -1,6 +1,5 @@
 # info-retrieval
 This project is an information retrival system for english wikipedia documents which returns to the user titles and wiki id for a given query.  
-
 ##Table of Contents
 
 1. [ backend search. ](#desc)
