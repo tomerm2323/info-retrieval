@@ -28,3 +28,8 @@ class MultiFileWriter:
 
     def close(self):
       self._f.close()
+      
+    def upload_to_gcp(self):
+      file_name = self._f.name
+      blob = self.bucket.blob(f"postings_gcp/{file_name}")
+      blob.upload_from_filename(file_name)

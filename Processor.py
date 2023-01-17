@@ -1,4 +1,14 @@
 import re
+from nltk.corpus import stopwords
+
+english_stopwords = frozenset(stopwords.words('english'))
+corpus_stopwords = ["category", "references", "also", "external", "links", 
+                    "may", "first", "see", "history", "people", "one", "two", 
+                    "part", "thumb", "including", "second", "following", 
+                    "many", "however", "would", "became"]
+
+all_stopwords = english_stopwords.union(corpus_stopwords)
+RE_WORD = re.compile(r"""[\#\@\w](['\-]?\w){2,24}""", re.UNICODE)
 
 class Processor:
   def __init__(self):
@@ -58,6 +68,14 @@ class Processor:
 
   def tokenize(self, text):
     print("Proccessor -> tokenize : Started")
-    return [v.lower() for match in self.patterns().finditer(text)
-                  for k, v in match.groupdict().items() 
-                  if v is not None and k != 'SPACE']
+    
+    preTokens =  [token.group() for token in RE_WORD.finditer(text.lower())] 
+      
+    tokens = []
+    for t in preTokens:
+      if t != "?":
+        if t not in all_stopwords:
+          tokens.append(t)
+        
+    return tokens
+    

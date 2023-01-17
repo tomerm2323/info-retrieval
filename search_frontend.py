@@ -11,6 +11,9 @@ from InvertedIndex import InvertedIndex
 import requests
 import datetime
 from mwviews.api import PageviewsClient
+import backend_search
+import time
+from MultiFileReader import MultiFileReader
 
 class MyFlaskApp(Flask):
     def run(self, host=None, port=None, debug=None, **options):
@@ -19,38 +22,26 @@ class MyFlaskApp(Flask):
 app = MyFlaskApp(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
-# sc = SparkContext("local", "Simple App")
 invertedIndex = InvertedIndex()
 reader = IndexReader(invertedIndex)
 
 global inv_index_text
-inv_index_text = reader.read_index('', 'inv_index_text')
+inv_index_text = reader.read_index('', 'inverted_index_text')
 global inv_index_title
-inv_index_title = reader.read_index('', 'inv_index_title')
+inv_index_title = reader.read_index('', 'inverted_index_title')
 global inv_index_anchor
-inv_index_anchor = reader.read_rdd_from_binary_files('inv_index_anchors', sc)
+inv_index_anchor = reader.read_index('','inverted_index_anchor')
 global id_to_title
-id_to_title = reader.read_index('', 'doc_titles')
+id_to_title = reader.read_index('', 'doc_to_title')
 global doc_to_len
-doc_to_len = reader.read_index('', 'doc_len')
+doc_to_len = reader.read_index('', 'docs_len')
 global tokens
 tokens = reader.read_index('', 'tokens')
 global page_view
 page_view = reader.read_index('', 'page_views')
 global page_rank
-page_rank = reader.read_pagerank('page_rank')
-
-
-@app.route("/check_globals")
-def check_globals():
-    types = []
-    types.append(type(inv_index_text))
-    types.append(type(inv_index_title))
-    types.append(type(inv_index_anchor))
-    # types.append(type(doc_to_len))
-    types.append(type(tokens))
-
-    print(types)
+page_rank_df = reader.read_pagerank('page_rank')
+page_rank = page_rank_df.set_index('id').to_dict()['pr']
 
 
 @app.route("/search")
@@ -75,7 +66,8 @@ def search():
     query = request.args.get('query', '')
     if len(query) == 0:
       return jsonify(res)
-    score = + 1000
+    res = backend_search.beckend_search(query, inv_index_text, inv_index_title, inv_index_anchor,
+                                        page_rank, page_view, id_to_title, doc_to_len)
     return jsonify(res)
 
 @app.route("/search_body")
@@ -105,7 +97,7 @@ def search_body():
     query_as_tokens = query_processor.tokenize(query)
     tfidf_query_vec = query_processor.calc_tfidf_query(query=query_as_tokens, inverted_index=inv_index)
     cosine = CosineSim(inverted_index=inv_index, doc_to_len=doc_to_len)
-    doc_term_tfidf_matrics = cosine.get_candidate_docs(query=query_as_tokens)
+    doc_term_tfidf_matrics = cosine.get_candidate_docs(query=query_as_tokens, folder_name="inverted_index_text")
     cosine_sim_dict = cosine.cos_sim(query=tfidf_query_vec,docs=doc_term_tfidf_matrics)
     top100 = cosine.get_top_n(score_dict=cosine_sim_dict, N=100)  # return as doc_id, score
     docs_title_pair = query_processor.id_to_title(ids_and_titles, [i[0] for i in top100])
@@ -140,13 +132,22 @@ def search_title():
     inv_index = inv_index_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
-    # print(f"LOGGER: search_title() : tokens = {query_as_tokens}")
     for token in query_as_tokens:
         # byte_pl = inv_index.get_byte_pl(token)
         # pl = inv_index.byte_pl_to_list(byte_pl)
-        pl = reader.load_posting_lists_for_token(token, inv_index, 'postings_gcp_title')
+        # pl = reader.load_posting_lists_for_token(token, inv_index, 'postings_gcp_title')
+
+        # reader = IndexReader(inv_index)
+        # TUPLE_SIZE = 6       
+        # bucket_name = "208378042-irproject"
+        folder_name = "inverted_index_title"
+        # n_bytes = inv_index.df[token] * TUPLE_SIZE
+        # locs = inv_index.posting_locs[token]
+        # pl = reader.read_title_pl( locs, n_bytes, bucket_name, folder_name, token, inv_index)
+        
+        pl = reader.token_posting_list(token, inv_index_title, folder_name)
+        
         for doc_id, tf in pl:
-            # print(f"LOGGER: search_title() : doc_id, title = {doc_id, id_to_title[doc_id]}")
             instances_in_doc_title = res.setdefault(doc_id, 0) + tf
             res[doc_id] = instances_in_doc_title
     sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1], reverse=True)}
@@ -178,22 +179,17 @@ def search_anchor():
     res = {}
     if len(query) == 0:
         return jsonify(res)
-    rdd_anchor_stats = inv_index_anchor
-    ids_and_titles = id_to_title
     query_processor = QueryProcessor()
     query_as_tokens = query_processor.tokenize(query)
+    reader = IndexReader(inv_index_anchor)
     for token in query_as_tokens:
-        try:
-            token_stats_dict = rdd_anchor_stats.filter(lambda x: list(x.keys())[0] == token).first()
-        except:
-            return jsonify([])
-        doc_tf_stats = token_stats_dict[token]
-        for src_id, src_tf in doc_tf_stats.items():
-            res.setdefault(src_id, 0)
-            res[src_id] += src_tf
+        posting_list = reader.token_posting_list(token, inv_index_anchor, "inverted_index_anchor")
+        for doc_id, tf in posting_list:
+            instances_in_doc_title = res.setdefault(doc_id, 0) + tf
+            res[doc_id] = instances_in_doc_title
     sorted_res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1], reverse=True)}
-    docs_anchor_pair = query_processor.id_to_title(ids_and_titles, list(sorted_res.keys()))
-    return jsonify(docs_anchor_pair)
+    docs_title_pair = query_processor.id_to_title(id_to_title, list(sorted_res.keys()))[:100]
+    return jsonify(docs_title_pair)
 
 
 @app.route("/get_pagerank", methods=['POST'])
@@ -217,11 +213,11 @@ def get_pagerank():
     wiki_ids = request.get_json()
     if len(wiki_ids) == 0:
       return jsonify(res)
-    pr = page_rank
-    print(page_rank.columns)
-    pr_filtered = pr[pr["id"].isin(wiki_ids)]
-    pagerank_list = pr_filtered['pr'].tolist()
-    return jsonify(pagerank_list)
+    for id in wiki_ids:
+        pagerank_score = page_rank.get(id)
+        if pagerank_score:
+            res.append(pagerank_score)
+    return jsonify(res)
 
 @app.route("/get_pageview", methods=['POST'])
 def get_pageview():

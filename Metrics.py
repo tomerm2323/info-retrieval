@@ -1,4 +1,3 @@
-import scipy
 import numpy as np
 from IndexReader import IndexReader
 
@@ -8,7 +7,7 @@ class Metric:
     self.inverted_index = inverted_index
     self.doc_to_len = doc_to_len
 
-  def get_candidate_docs(self, query):
+  def get_candidate_docs(self, query, folder_name):
     """
     This method return all the relevant docs to calculate cosine similiry with.
     The relevant docs are the ones who in the posting list of each term in the query. 
@@ -28,7 +27,7 @@ class Metric:
     tokens = list(set(query))
     for token in tokens:
       reader = IndexReader(self.inverted_index) 
-      pl = reader.load_posting_lists_for_token(token, self.inverted_index, 'postings_gcp')
+      pl = reader.token_posting_list(token, self.inverted_index, folder_name)
       for doc_id, tf in pl:
         # key = (doc_id,token)
 
