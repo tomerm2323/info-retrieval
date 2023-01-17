@@ -5,20 +5,25 @@ This project is an information retrival system for english wikipedia documents w
 
 1. [ backend search. ](#desc)
 2. [ frontend search ](#usage)
-3. [utils](#usage)
+3. [Index](#usage)
+4. [utils](#usage)
 
 <a name="desc"></a>
-### 1. backend search
+### 1. Backend search
 Called by the fortned_search.py to compute the search over the index.
 
 
 
 <a name="usage"></a>
-### 2. frontend search
+### 2. Frontend search
 
 An endpoint for the user that passes his requests to backend and retrive results for user.
 
 <a name="usage"></a>
-### 3. utils
+### 3. Index:
+The IR-project.py & invered_index.py files containes The flow of buildnig the inverted index with it's the building block functions.
+<a name="usage"></a>
+### 4. utils:
+All other classes and funcutons are related to processing, writers\readers and metrices for evaluation, similarity and ranking. 
 
-In the utils you can find all helper functions related to processing, index, and the other search methods i.e anchor search etc.
+
